@@ -1,1 +1,67 @@
+<!--
+Topic 1: Does Home-Field Advantage In the NFL
+Brief Description: 
+Investigate whether playing at home provides a statistically significant advantage for NFL teams
+
+Motivation: 
+We like the sport of American football, and this is often talked about in the sport.
+
+Potential Audience: 
+There are 17.5 million viewers of American football (NFL)
+
+2-3 Questions: 
+
+Is there a statistically significant difference between home and away win percentages across NFL teams over the past 10 seasons?
+
+
+Which teams have the strongest and weakest home-field advantage over the past decade?
+
+
+Do more “important” games (e.g., playoff-impacting) have higher upset frequencies?
+
+
+Data source: 
+FiveThirtyEight’s NFL Elo dataset — specifically nfl_elo.csv, 
+
+Topic 2: Educational Attainment and Income in the U.S.
+Brief Description:
+Examine how education level affects income levels across U.S. populations
+Motivation:
+As an econ major it’s interesting, it’s also related to what is being studied in advanced macroeconomic classes.
+Potential Audience:
+
+
+Econ majors
+2-3 Questions:
+Do people who have attained a bachelors degree have a higher income than people with only a high school diploma?
+Do people who attain higher than a bachelors degree make more than people with only a bachelors degree? How much more? So is grad school worth it?
+
+
+Data source:
+GSS https://gssdataexplorer.norc.org
+Topic 3: Do Online Movie Ratings Show Polarization?
+
+Brief Description:
+See whether movie ratings tend to be clustered at extremes (mostly 1-star or 5-star) rather than evenly distributed, reflecting polarized opinions. So basically, do people who take the time to write a review really like the movie or really hate the movie.
+
+Motivation:
+Movie ratings are often widely talked about when they release, affecting the amount of people who take the time to go to the theater.
+
+Potential Audience:
+Companies such as disney, warner brothers, also people who rely on movie ratings to decide if they want to see the movie. So if there is polarization, people should keep in mind that people who rate are at the extremes
+
+2-3 Questions:
+What is the distribution of movie ratings on popular platforms like IMDb and Rotten Tomatoes, and do they tend to cluster at extreme ends (1-star or 5-star ratings)?
+
+
+Is there a correlation between the number of user reviews and the degree of polarization in movie ratings?
+
+How do different movie rating platforms (e.g., Fandango, IMDb, Rotten Tomatoes, Metacritic) differ in the degree of polarization of their ratings?
+
+Data source:
+FiveThirtyEight Data
+ Fandango Movie Ratings (FiveThirtyEight Data)
+ File used: fandango_score_comparison.csv
+
+-->
 
