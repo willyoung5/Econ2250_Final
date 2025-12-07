@@ -1,0 +1,323 @@
+---
+title: "Do Movie Reviewers Rate at the Extremes?"
+author: "Thomas Cochran"
+format: html
+editor: visual
+execute: 
+  echo: true
+  warning: true
+  message: false
+---
+
+## Introduction
+
+Online movie ratings influence how people decide what to watch. Intuitively, it can feel like people either love a movie (5 stars) or hate it (1 star), and that moderate ratings are rare.
+
+In this project we use individual ratings from the MovieLens dataset to investigate the question:
+
+Do individual reviewers tend to rate movies at the extremes (≤ 1 or ≥ 4.5 stars), or do most ratings fall in the middle?
+
+We treat ratings of ≤ 1 and ≥ 4.5 (on a 0.5–5 star scale) as extreme. Our main statistical question is:
+
+Is the proportion of extreme ratings greater than 20% of all ratings?
+
+If more than one in five ratings are extreme, we interpret that as evidence of meaningful polarization in user rating behavior.
+
+## Data
+
+The MovieLens dataset is provided by GroupLens, a research group in the Department of Computer Science and Engineering at the University of Minnesota. We use two CSV files:
+
+ratings.csv – individual ratings
+
+movies.csv – movie titles and genres
+
+```{r}
+#| label: load-data
+
+#Read data from CSV files in the working directory
+
+ratings <- read_csv("ratings.csv")
+movies  <- read_csv("movies.csv")
+
+glimpse(ratings)
+glimpse(movies)
+```
+
+Each row of ratings is a single user’s rating of a movie:
+
+-   userId
+
+-   movieId
+
+-   rating (0.5 to 5, in 0.5‑star increments)
+
+-   timestamp
+
+Each row of movies contains:
+
+-   movieId
+
+-   title
+
+-   genres
+
+We join these so that each rating has its corresponding movie title.
+
+```{r}
+#| label: join-data
+
+ratings_full <- ratings %>%
+inner_join(movies, by = "movieId")
+
+glimpse(ratings_full)
+
+```
+
+## Filtering to Movies with at Least 30 Ratings
+
+To focus on movies with a reasonable amount of feedback, we keep only movies that have at least 30 ratings.
+
+```{r}
+#| label: filter-30plus
+
+ratings_30plus <- ratings_full %>%
+group_by(movieId) %>%
+filter(n() >= 30) %>%
+ungroup()
+
+nrow(ratings_full)      # total number of ratings
+nrow(ratings_30plus)    # ratings for movies with >= 30 ratings
+
+```
+
+# Descriptive Statistics
+
+## Distribution of Individual Ratings
+
+We first examine the distribution of all individual ratings in our filtered data set.
+
+```{r}
+#| label: rating-density
+#| fig-cap: "Density of individual movie ratings (movies with ≥ 30 ratings)."
+
+ggplot(ratings_30plus, aes(x = rating)) +
+geom_density(fill = "steelblue", alpha = 0.6, adjust = 1.3) +
+scale_x_continuous(breaks = seq(0.5, 5, by = 0.5)) +
+labs(
+title = "Density of Individual Movie Ratings (MovieLens)",
+x = "Rating (0.5–5 stars)",
+y = "Density"
+) +
+theme_minimal(base_size = 14)
+
+```
+
+## Categorizing Ratings as Low, Middle, or High
+
+We classify each rating as low extreme, middle, or high extreme:
+
+-   **Low extreme**: rating ≤ 1
+
+-   **High extreme**: rating ≥ 4.5
+
+-   **Middle**: 1 \< rating \< 4.5
+
+```{r}
+#| label: categorize-ratings
+
+ratings_extreme <- ratings_30plus %>%
+mutate(
+extreme = case_when(
+rating <= 1   ~ "Low (≤ 1)",
+rating >= 4.5 ~ "High (≥ 4.5)",
+TRUE          ~ "Middle (1–4.5)"
+)
+)
+
+extreme_counts <- ratings_extreme %>%
+count(extreme) %>%
+mutate(prop = n / sum(n))
+
+extreme_counts
+
+```
+
+```{r}
+#| label: extreme-bar
+#| fig-cap: "Counts of low, middle, and high ratings."
+
+ggplot(extreme_counts, aes(x = extreme, y = n, fill = extreme)) +
+geom_col() +
+labs(
+title = "Extreme vs Middle Ratings",
+x = "Rating Category",
+y = "Number of Ratings"
+) +
+theme_minimal(base_size = 14) +
+theme(legend.position = "none")
+
+```
+
+We see the proportions of low, middle, and high ratings, which provides context for our hypothesis tests. **Change how this graph looks**
+
+## Expected vs Actual Distribution (edit this)
+
+Under a “non‑polarized” rating system, we would expect a roughly bell‑shaped distribution centered around 3–4 stars, with relatively few ratings in the tails. To visualise this, we compare our observed ratings to an idealised normal curve with mean 3.5 and standard deviation 1.
+
+```{r}
+#| label: theoretical-vs-actual
+#| fig-cap: "Theoretical bell-shaped rating distribution (red) vs actual MovieLens ratings (blue)."
+
+theoretical <- tibble(
+rating  = seq(0.5, 5, by = 0.01),
+density = dnorm(rating, mean = 3.5, sd = 1)
+)
+
+ggplot() +
+geom_line(data = theoretical,
+aes(x = rating, y = density),
+color = "red", size = 1.2, alpha = 0.7) +
+geom_density(data = ratings_30plus,
+aes(x = rating),
+fill = "steelblue", alpha = 0.45, adjust = 1.3) +
+scale_x_continuous(breaks = seq(0.5, 5, by = 0.5)) +
+labs(
+title = "Expected vs Actual Rating Distribution",
+subtitle = "Red: idealised bell-shaped curve; Blue: actual MovieLens ratings",
+x = "Rating",
+y = "Density"
+) +
+theme_minimal(base_size = 14)
+
+```
+
+# Hypothesis Testing: Are Extreme Ratings Too Common?
+
+Let:
+
+-   p = true proportion of all ratings that are extreme (≤ 1 or ≥ 4.5).
+
+We test whether extreme ratings are more frequent than 20% of all ratings:
+
+-   **Null hypothesis** *H~0~*​ : p ≤ 0.20
+
+-   **Alternative hypothesis** *H~A~* : p \> 0.20
+
+We choose **20%** as a practical cutoff for “moderate polarization”. In a typical unimodal system, we would expect a much smaller share of ratings at the extremes. If more than one in five ratings are extreme, we see that as evidence that users lean toward very strong opinions.
+
+## One-sample Proportion Test (All Extremes Combined)
+
+```{r}
+#| label: prop-test-all
+
+# Count all extreme ratings (low + high)
+
+extreme_count <- ratings_extreme %>%
+filter(extreme != "Middle (1–4.5)") %>%
+nrow()
+
+total_ratings <- nrow(ratings_extreme)
+
+extreme_prop <- extreme_count / total_ratings
+extreme_prop
+
+prop_test_all <- prop.test(
+x = extreme_count,
+n = total_ratings,
+p = 0.20,             # null value p0 = 0.20
+alternative = "greater",
+correct = FALSE
+)
+
+prop_test_all
+
+```
+
+The sample proportion of extreme ratings is:
+
+```{r}
+#| label: prop-all-summary
+round(extreme_prop, 3)
+
+```
+
+## Separate Tests for Low and High Extremes
+
+To understand which side drives the result, we separately examine low and high extremes.
+
+```{r}
+#| label: split-extremes
+
+low_count <- ratings_30plus %>%
+filter(rating <= 1) %>%
+nrow()
+
+high_count <- ratings_30plus %>%
+filter(rating >= 4.5) %>%
+nrow()
+
+low_prop  <- low_count  / total_ratings
+high_prop <- high_count / total_ratings
+
+c(low_prop  = low_prop,
+high_prop = high_prop)
+
+```
+
+## Test for Low Extreme Ratings (≤ 1 star)
+
+```{r}
+#| label: prop-test-low
+
+prop_test_low <- prop.test(
+x = low_count,
+n = total_ratings,
+p = 0.20,
+alternative = "greater",
+correct = FALSE
+)
+
+prop_test_low
+
+```
+
+## Test for High Extreme Ratings (≥ 4.5 stars)
+
+```{r}
+#| label: prop-test-high
+
+prop_test_high <- prop.test(
+x = high_count,
+n = total_ratings,
+p = 0.20,
+alternative = "greater",
+correct = FALSE
+)
+
+prop_test_high
+
+```
+
+# Results and Interpretation
+
+Based on the combined test:
+
+-   The observed proportion of extreme ratings is about **28.6%**
+
+-   The p‑value from the one‑sample proportion test with p~0~ = 0.20 is extremely small, so we reject H~0~ ​and conclude that **more than 20% of all ratings are extreme.**
+
+From the separate tests:
+
+-   The proportion of low extreme ratings (≤ 1 star) is **4.6%**, and the test for low extremes does *not* show evidence that this exceeds 20%. Very low ratings are **rare.**
+
+-   The proportion of high extreme ratings (≥ 4.5 stars) is about **24%**, and the test shows strong evidence that this is **greater** than 20%. Very high ratings are **common.**
+
+In summary, extreme ratings are more frequent than expected in a non‑polarized system, but this is driven almost entirely by very positive scores, not by very negative ones.
+
+## Discussion
+
+Talk about review inflation from user made reviews
+
+# Conclusion
+
+Talk about conclusion from discussion and results
