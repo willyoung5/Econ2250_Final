@@ -1,0 +1,4 @@
+
+https://grouplens.org/datasets/movielens/latest/
+
+Use above link to download the data because the data itself is too large to upload to GitHub. On that page, download the ml-latest.zip file that is 335 MB. In the data itself, we used movies.csv and ratings.csv}
